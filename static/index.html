@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resume Parser AI — ATS Score &amp; Skills Analyzer</title>
+  <meta name="description" content="AI-powered resume analyzer using Groq. Extract ATS scores, skills, and highlights — or convert your resume to a professional template." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231a56f0'/><path d='M8 10h16M8 16h10M8 22h13' stroke='white' stroke-width='2.5' stroke-linecap='round'/></svg>" />
+</head>
+<body>
+
+<!-- ============================================================ HEADER ============================================================ -->
+<header>
+  <div class="container header-inner">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+      </div>
+      <span class="brand-name">ResumeAI</span>
+      <span class="brand-sep"></span>
+      <span class="brand-tag">Powered by Groq</span>
+    </div>
+    <nav class="header-nav">
+      <a href="/docs" target="_blank" class="nav-link">API Docs</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ============================================================ HERO ============================================================ -->
+<section class="hero">
+  <div class="container">
+    <p class="hero-eyebrow">Intelligent Resume Analysis</p>
+    <h1 class="hero-title">Analyze. Score. Convert.</h1>
+    <p class="hero-sub">Upload your resume to get your ATS compatibility score, extract key skills and highlights, or reformat it to a professional template — powered by Groq AI.</p>
+
+    <!-- Mode Switcher -->
+    <div class="mode-switcher">
+      <button class="mode-btn active" id="mode-analyze" onclick="switchMode('analyze')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        Analyze Resume
+      </button>
+      <button class="mode-btn" id="mode-convert" onclick="switchMode('convert')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+          <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+        </svg>
+        Convert Resume
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ MAIN ============================================================ -->
+<main class="container">
+
+  <!-- ── Upload Card ── -->
+  <div class="upload-card" id="upload-card">
+
+    <!-- Input Tabs -->
+    <div class="input-tabs">
+      <button class="tab-btn active" id="tab-file">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        Upload File
+      </button>
+      <button class="tab-btn" id="tab-text">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/>
+          <line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/>
+        </svg>
+        Paste Text
+      </button>
+    </div>
+
+    <!-- File Upload Panel -->
+    <div id="file-panel">
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".pdf,.docx,.doc,.txt" />
+        <div class="drop-icon-wrap">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/>
+          </svg>
+        </div>
+        <h3>Drop your resume here</h3>
+        <p>PDF, DOCX, or TXT &nbsp;&middot;&nbsp; Max 10 MB</p>
+        <span class="drop-browse">Browse files</span>
+      </div>
+      <div class="file-selected-badge" id="file-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <span id="file-name">file.pdf</span>
+      </div>
+    </div>
+
+    <!-- Text Paste Panel -->
+    <div class="text-panel" id="text-panel">
+      <textarea class="resume-text" id="resume-text"
+        placeholder="Paste your resume text here...&#10;&#10;Example:&#10;John Doe&#10;Senior Software Engineer | john@email.com&#10;&#10;EXPERIENCE&#10;— Led backend development at XYZ Corp (2020–2024)&#10;&#10;SKILLS&#10;Python, FastAPI, Docker, AWS, PostgreSQL">
+      </textarea>
+    </div>
+
+    <!-- Error Banner -->
+    <div class="error-banner" id="error-banner">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span id="error-msg">An error occurred.</span>
+    </div>
+
+    <!-- CTA -->
+    <button class="analyze-btn" id="analyze-btn">
+      <svg id="btn-icon-analyze" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <svg id="btn-icon-convert" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+      </svg>
+      <span id="btn-text">Analyze Resume</span>
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div class="upload-card loading-overlay" id="loading-overlay">
+    <div class="spinner-ring"></div>
+    <p id="loading-title" class="loading-title">Analyzing your resume with Groq AI</p>
+    <p class="loading-step" id="loading-step">Extracting text from your resume…</p>
+  </div>
+
+  <!-- ── Analyze Results ── -->
+  <section id="results">
+
+    <div class="candidate-header">
+      <div class="candidate-avatar" id="res-cand-avatar">JD</div>
+      <div class="candidate-info">
+        <h2 id="res-cand-name">John Doe</h2>
+        <div class="job-title" id="res-cand-title">Professional</div>
+        <div class="summary-text" id="res-summary"></div>
+      </div>
+      <div class="experience-badge" id="experience-badge">
+        <div class="exp-num" id="res-exp-num">—</div>
+        <div class="exp-label">Years Experience</div>
+      </div>
+    </div>
+
+    <div class="results-grid">
+
+      <!-- ATS Score Card -->
+      <div class="section-card">
+        <div class="section-title">
+          <svg class="section-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          ATS Compatibility Score
+        </div>
+        <div class="ats-score-widget">
+          <div class="score-gauge-wrap">
+            <svg class="score-gauge-svg" width="140" height="140" viewBox="0 0 140 140">
+              <defs>
+                <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#1a56f0"/>
+                  <stop offset="100%" stop-color="#0ea5e9"/>
+                </linearGradient>
+              </defs>
+              <circle class="gauge-bg" cx="70" cy="70" r="54" fill="none" stroke-width="10"/>
+              <circle class="gauge-fill" id="gauge-circle" cx="70" cy="70" r="54" fill="none" stroke-width="10"
+                stroke-dasharray="339.29" stroke-dashoffset="339.29"/>
+            </svg>
+            <div class="score-center">
+              <span class="score-number score-good" id="res-ats-num">—</span>
+              <span class="score-grade score-good" id="res-ats-grade">—</span>
+            </div>
+          </div>
+          <div class="score-details">
+            <p class="ats-summary" id="res-ats-summary"></p>
+            <div class="subscore-list" id="res-subscores"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skills Card -->
+      <div class="section-card">
+        <div class="section-title">
+          <svg class="section-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          Extracted Skills
+        </div>
+        <div id="res-skills"></div>
+      </div>
+
+      <!-- Highlights Card -->
+      <div class="section-card full-width">
+        <div class="section-title">
+          <svg class="section-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/>
+            <line x1="9" y1="21" x2="9" y2="9"/>
+          </svg>
+          Key Highlights &amp; Achievements
+        </div>
+        <div class="highlights-list" id="res-highlights"></div>
+      </div>
+
+      <!-- Tips Card -->
+      <div class="section-card full-width">
+        <div class="section-title">
+          <svg class="section-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          Recommendations
+        </div>
+        <div class="tips-list" id="res-tips"></div>
+      </div>
+
+    </div>
+
+    <button class="secondary-btn" id="new-analysis-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      Analyze Another Resume
+    </button>
+
+  </section>
+
+  <!-- ── Convert Results ── -->
+  <section id="convert-results">
+    <div class="convert-success-card">
+      <div class="convert-success-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <h2>Resume Converted</h2>
+      <p class="convert-success-sub">Your resume has been restructured to match the professional template and is ready to download.</p>
+      <div class="convert-preview" id="convert-preview"></div>
+      <button class="download-btn" id="download-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download DOCX
+      </button>
+      <button class="secondary-btn" id="new-convert-btn" style="margin-top:12px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        Convert Another Resume
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container footer-inner">
+    <span>ResumeAI &mdash; Built with FastAPI &amp; Groq</span>
+    <div class="footer-links">
+      <a href="/docs" target="_blank">API Reference</a>
+      <a href="https://console.groq.com" target="_blank">Groq Console</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
