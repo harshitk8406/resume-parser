@@ -27,9 +27,6 @@
       <span class="brand-sep"></span>
       <span class="brand-tag">Powered by Groq</span>
     </div>
-    <nav class="header-nav">
-      <a href="/docs" target="_blank" class="nav-link">API Docs</a>
-    </nav>
   </div>
 </header>
 
@@ -111,6 +108,15 @@
       <textarea class="resume-text" id="resume-text"
         placeholder="Paste your resume text here...&#10;&#10;Example:&#10;John Doe&#10;Senior Software Engineer | john@email.com&#10;&#10;EXPERIENCE&#10;— Led backend development at XYZ Corp (2020–2024)&#10;&#10;SKILLS&#10;Python, FastAPI, Docker, AWS, PostgreSQL">
       </textarea>
+    </div>
+
+    <!-- Job Description Panel -->
+    <div class="jd-panel" id="jd-panel">
+      <div class="jd-header">
+        <label for="job-desc" class="jd-label">Target Job Description (Optional)</label>
+        <span class="jd-subtitle">Providing a Job Description optimizes conversion and calculates the ATS score specifically for this role</span>
+      </div>
+      <textarea class="jd-text" id="job-desc" placeholder="Paste target Job Description here... (requirements, responsibilities, skills)"></textarea>
     </div>
 
     <!-- Error Banner -->
@@ -266,16 +272,6 @@
   </section>
 
 </main>
-
-<footer>
-  <div class="container footer-inner">
-    <span>ResumeAI &mdash; Built with FastAPI &amp; Groq</span>
-    <div class="footer-links">
-      <a href="/docs" target="_blank">API Reference</a>
-      <a href="https://console.groq.com" target="_blank">Groq Console</a>
-    </div>
-  </div>
-</footer>
 
 <script src="/static/app.js"></script>
 </body>

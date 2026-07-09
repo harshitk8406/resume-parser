@@ -149,17 +149,115 @@ USER_PROMPT_TEMPLATE = """Analyze this resume and return the structured JSON:
 {resume_text}
 --- RESUME END ---"""
 
+SYSTEM_PROMPT_WITH_JD = """You are an elite resume analysis AI and ATS (Applicant Tracking System) expert with 15+ years of experience in HR and talent acquisition.
+
+Your task is to analyze the given resume text against the provided Target Job Description and return a **single JSON object** — no markdown, no code blocks, no extra text — strictly following the schema below.
+
+All scoring, grades, feedbacks, and improvement suggestions MUST be tailored to evaluate and optimize the candidate's alignment with this specific Target Job Description.
+
+JSON SCHEMA:
+{
+  "candidate_name": "string or null",
+  "candidate_title": "string or null",
+  "summary": "string (2-3 sentence professional summary tailored to the target job)",
+  "total_experience_years": number or null,
+  "skills": {
+    "technical": ["list of technical skills relevant to the job"],
+    "tools": ["list of tools/software relevant to the job"],
+    "soft_skills": ["list of soft skills matching the job description"],
+    "domain_expertise": ["list of domain/industry knowledge relevant to the job"]
+  },
+  "highlights": [
+    {
+      "category": "Work Experience | Education | Project | Certification | Achievement",
+      "title": "string",
+      "description": "string",
+      "impact": "string or null (quantified impact showing relevance to the job requirements)"
+    }
+  ],
+  "ats_score": {
+    "overall": integer (0-100),
+    "grade": "A+ | A | B+ | B | C+ | C | D | F",
+    "summary": "string (paragraph explaining the ATS compatibility specifically for this Target Job Description)",
+    "subscores": [
+      {
+        "label": "Keywords & Skills Match",
+        "score": integer (0-30),
+        "max_score": 30,
+        "feedback": "string (how well the resume skills match the target JD requirements and which critical keywords are missing)"
+      },
+      {
+        "label": "Quantified Achievements",
+        "score": integer (0-25),
+        "max_score": 25,
+        "feedback": "string (how well achievements align with the job's key responsibilities/metrics)"
+      },
+      {
+        "label": "Format & Structure",
+        "score": integer (0-20),
+        "max_score": 20,
+        "feedback": "string"
+      },
+      {
+        "label": "Completeness of Sections",
+        "score": integer (0-15),
+        "max_score": 15,
+        "feedback": "string"
+      },
+      {
+        "label": "Readability & Action Verbs",
+        "score": integer (0-10),
+        "max_score": 10,
+        "feedback": "string"
+      }
+    ]
+  },
+  "improvement_tips": [
+    {
+      "priority": "High | Medium | Low",
+      "area": "string",
+      "suggestion": "string (actionable advice to align the resume with this specific Target Job Description, e.g., 'Add [missing skill] to your technical skills section')"
+    }
+  ]
+}
+
+ATS SCORING RUBRIC (WITH JD ALIGNMENT):
+- Keywords & Skills Match (0–30): How closely the resume's technical skills, tools, and domain keywords align with the requirements of the Target Job Description. If key required tech/skills are missing, score must be low.
+- Quantified Achievements (0–25): Presence of numbers, metrics, or dollar amounts demonstrating relevant impact.
+- Format & Structure (0–20): Clean headers, bulleted lists, standard ATS compatibility.
+- Completeness of Sections (0–15): Contact info, summary, experience, education, skills.
+- Readability & Action Verbs (0–10): Impactful verbs, readability, professional tone.
+
+GRADE SCALE: 90-100=A+, 80-89=A, 70-79=B+, 60-69=B, 50-59=C+, 40-49=C, 30-39=D, 0-29=F
+
+IMPORTANT:
+- Return ONLY valid JSON. No markdown. No explanations outside the JSON.
+- Be highly critical. If the resume is missing key requirements of the Job Description, give a lower Keywords & Skills Match subscore and detailed improvement tips on how to address it.
+- The "overall" score must equal the sum of all subscore values.
+"""
+
+USER_PROMPT_TEMPLATE_WITH_JD = """Analyze this resume against the following Target Job Description and return the structured JSON:
+
+--- TARGET JOB DESCRIPTION START ---
+{job_description}
+--- TARGET JOB DESCRIPTION END ---
+
+--- RESUME START ---
+{resume_text}
+--- RESUME END ---"""
+
 
 # ---------------------------------------------------------------------------
 # Main agent function
 # ---------------------------------------------------------------------------
 
-def analyze_resume(resume_text: str) -> ResumeAnalysisResponse:
+def analyze_resume(resume_text: str, job_description: Optional[str] = None) -> ResumeAnalysisResponse:
     """
     Send resume text to Grok and return a structured analysis.
 
     Args:
         resume_text: Plain text extracted from the resume file.
+        job_description: Target job description to evaluate against.
 
     Returns:
         ResumeAnalysisResponse with skills, highlights, and ATS score.
@@ -178,11 +276,22 @@ def analyze_resume(resume_text: str) -> ResumeAnalysisResponse:
 
     logger.info("Sending resume to Groq model: %s", model)
 
+    sys_prompt = SYSTEM_PROMPT
+    usr_prompt = USER_PROMPT_TEMPLATE.format(resume_text=resume_text)
+
+    if job_description and job_description.strip():
+        logger.info("Evaluating resume against provided Job Description.")
+        sys_prompt = SYSTEM_PROMPT_WITH_JD
+        usr_prompt = USER_PROMPT_TEMPLATE_WITH_JD.format(
+            resume_text=resume_text,
+            job_description=job_description.strip()
+        )
+
     response = client.chat.completions.create(
         model=model,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": USER_PROMPT_TEMPLATE.format(resume_text=resume_text)},
+            {"role": "system", "content": sys_prompt},
+            {"role": "user", "content": usr_prompt},
         ],
         max_tokens=max_tokens,
         temperature=0.2,  # Low temp for consistent, structured output
@@ -297,7 +406,7 @@ def _score_to_grade(score: int) -> str:
 # Resume Converter — prompts + agent function
 # ---------------------------------------------------------------------------
 
-CONVERT_SYSTEM_PROMPT = """You are an expert resume formatter. Your task is to extract ALL information from the given resume and restructure it into a specific professional template format.
+CONVERT_SYSTEM_PROMPT = """You are an expert resume formatter and optimizer. Your task is to extract ALL information from the given resume and restructure it into a specific professional template format while maximizing its ATS score compatibility.
 
 You must return a SINGLE valid JSON object — no markdown, no code fences, no extra text.
 
@@ -315,14 +424,18 @@ The template follows this layout:
 10. education: Degree lines, e.g. "Master of Computer Applications - University of the Punjab (2007)"
 11. certifications: Certification names as bullet points
 
-RULES:
-- Extract ALL work experience from the resume without omitting any
-- Detailed recent roles go in professional_experience; brief older roles go in other_experience
-- Generate a professional_summary if the resume does not have one, based on the experience
-- Organize technical skills into logical categories (CRM, Programming Languages, Cloud Platforms, Tools, etc.)
-- Keep bullet points concise and action-oriented
-- If information is missing (e.g. no LinkedIn), set that field to null
-- Return ONLY valid JSON with this exact schema:
+RULES (CRITICAL FOR ATS OPTIMIZATION):
+- Extract ALL work experience from the resume without omitting any.
+- Detailed recent roles go in professional_experience; brief older roles go in other_experience.
+- Generate a professional_summary if the resume does not have one, based on the experience.
+- Organize technical skills into logical categories (CRM, Programming Languages, Cloud Platforms, Tools, etc.).
+- If information is missing (e.g. no LinkedIn), set that field to null.
+- TO INCREASE ATS SCORE:
+  1. PRESERVE AND HIGHLIGHT QUANTIFIED IMPACT: You MUST extract and preserve all metrics, numbers, percentages, dollar amounts, and volume indicators from the original experience description. Never omit or simplify metrics. If a metric is associated with an accomplishment, make sure it is prominently stated in the bullet points.
+  2. MAXIMIZE KEYWORDS & SKILLS COVERAGE: Keep every technical keyword, platform, tool, database, and library mentioned in the original resume. Group them logically in the "technical_skills" category strings (e.g. "Languages – Python, Java, SQL", "Cloud – AWS (S3, EC2, Lambda)").
+  3. USE IMPACTFUL ACTION VERBS: Every single bullet point under professional experience responsibilities and professional summary MUST begin with a strong, results-oriented action verb (e.g., "Spearheaded", "Architected", "Engineered", "Optimized", "Formulated", "Synthesized", "Decoupled"). Avoid passive phrasing like "Responsible for..." or "Helped with...".
+  4. ALIGN WITH TARGET JOB DESCRIPTION: If a target job description is provided, analyze it and tailor the phrasing, keywords, and priority of the summary, technical skills, and responsibility bullets to highlight qualifications relevant to the Job Description, without fabricating fake experience.
+  5. FORMATTING COMPLIANCE: Do not change the JSON format keys or structure.
 
 {
   "name": "string",
@@ -357,14 +470,25 @@ CONVERT_USER_PROMPT = """Restructure this resume into the template format and re
 {resume_text}
 --- RESUME END ---"""
 
+CONVERT_USER_PROMPT_WITH_JD = """Restructure and optimize this resume into the template format, aligning it with the Target Job Description to maximize the ATS score. Return JSON:
 
-def convert_resume(resume_text: str) -> dict:
+--- TARGET JOB DESCRIPTION START ---
+{job_description}
+--- TARGET JOB DESCRIPTION END ---
+
+--- RESUME START ---
+{resume_text}
+--- RESUME END ---"""
+
+
+def convert_resume(resume_text: str, job_description: Optional[str] = None) -> dict:
     """
     Send resume text to Groq and return a structured dict matching
     the ConvertedResumeData schema (template format).
 
     Args:
         resume_text: Plain text extracted from the uploaded resume.
+        job_description: Optional target job description to optimize against.
 
     Returns:
         Dict matching ConvertedResumeData structure.
@@ -382,11 +506,21 @@ def convert_resume(resume_text: str) -> dict:
 
     logger.info("Converting resume with Groq model: %s", model)
 
+    sys_prompt = CONVERT_SYSTEM_PROMPT
+    usr_prompt = CONVERT_USER_PROMPT.format(resume_text=resume_text)
+
+    if job_description and job_description.strip():
+        logger.info("Aligning converted resume with Target Job Description for higher ATS match.")
+        usr_prompt = CONVERT_USER_PROMPT_WITH_JD.format(
+            resume_text=resume_text,
+            job_description=job_description.strip()
+        )
+
     response = client.chat.completions.create(
         model=model,
         messages=[
-            {"role": "system", "content": CONVERT_SYSTEM_PROMPT},
-            {"role": "user",   "content": CONVERT_USER_PROMPT.format(resume_text=resume_text)},
+            {"role": "system", "content": sys_prompt},
+            {"role": "user",   "content": usr_prompt},
         ],
         max_tokens=max_tokens,
         temperature=0.1,  # Very low — we want deterministic structured output

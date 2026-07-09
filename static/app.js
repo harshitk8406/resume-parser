@@ -21,6 +21,7 @@ const fileInput      = document.getElementById('file-input');
 const fileBadge      = document.getElementById('file-badge');
 const fileNameSpan   = document.getElementById('file-name');
 const resumeTextArea = document.getElementById('resume-text');
+const jdTextArea     = document.getElementById('job-desc');
 const analyzeBtn     = document.getElementById('analyze-btn');
 const btnText        = document.getElementById('btn-text');
 const btnIconAnalyze = document.getElementById('btn-icon-analyze');
@@ -379,6 +380,7 @@ function resetUI() {
   fileInput.value = '';
   fileBadge.classList.remove('show');
   resumeTextArea.value = '';
+  jdTextArea.value = '';
   hideError();
   uploadCard.style.display = '';
   uploadCard.scrollIntoView({ behavior: 'smooth' });
@@ -402,6 +404,11 @@ function buildFormData() {
   const fd = new FormData();
   if (activeTab === 'file') fd.append('file', selectedFile);
   else fd.append('text', resumeTextArea.value.trim());
+
+  const jdVal = jdTextArea.value.trim();
+  if (jdVal) {
+    fd.append('job_description', jdVal);
+  }
   return fd;
 }
 

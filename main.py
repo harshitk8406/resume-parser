@@ -11,6 +11,7 @@ import logging
 import os
 import time
 from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
@@ -99,6 +100,7 @@ async def health_check():
 async def analyze(
     file: UploadFile = File(None, description="Resume file (PDF, DOCX, or TXT)"),
     text: str = Form(None, description="Raw resume text (alternative to file upload)"),
+    job_description: Optional[str] = Form(None, description="Job Description text to analyze against"),
 ):
     """
     Analyze a resume using Grok AI.
@@ -151,7 +153,7 @@ async def analyze(
 
     # --- 2. Run AI analysis ---
     try:
-        result = analyze_resume(resume_text)
+        result = analyze_resume(resume_text, job_description)
     except ValueError as e:
         logger.error("Agent error: %s", e)
         raise HTTPException(status_code=422, detail=str(e))
@@ -182,6 +184,7 @@ async def analyze(
 async def convert(
     file: UploadFile = File(None, description="Resume file (PDF, DOCX, or TXT)"),
     text: str = Form(None, description="Raw resume text"),
+    job_description: Optional[str] = Form(None, description="Job Description text to align converted resume with"),
 ):
     """
     Convert a resume to the HAIRAT template format and return a DOCX download.
@@ -216,7 +219,7 @@ async def convert(
 
     # --- 2. AI conversion ---
     try:
-        converted_data = convert_resume(resume_text)
+        converted_data = convert_resume(resume_text, job_description)
     except ValueError as e:
         logger.error("Conversion agent error: %s", e)
         raise HTTPException(status_code=422, detail=str(e))
